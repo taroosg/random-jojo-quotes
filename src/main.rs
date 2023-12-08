@@ -28,7 +28,7 @@ async fn add(
     Json(data): Json<QuoteNew>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     match sqlx::query_as::<_, Quote>(
-        "INSERT INTO quotes VALUES (null, $1, $2, $3) RETURNING id, quote, speaker, source",
+        "INSERT INTO quotes (quote, speaker, source) VALUES ($1, $2, $3) RETURNING id, quote, speaker, source",
     )
     .bind(&data.quote)
     .bind(&data.speaker)
