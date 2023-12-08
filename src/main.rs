@@ -19,7 +19,7 @@ async fn retrieve(
         "application/json; charset=utf-8".parse().unwrap(),
     );
 
-    match sqlx::query_as::<_, Quote>("SELECT * FROM quotes WHERE id = $1")
+    match sqlx::query_as::<_, Quote>("SELECT quote, speaker, source FROM quotes WHERE id = $1")
         .bind(id)
         .fetch_one(&state.pool)
         .await
@@ -36,9 +36,11 @@ async fn random(State(state): State<MyState>) -> Result<impl IntoResponse, impl 
         "application/json; charset=utf-8".parse().unwrap(),
     );
 
-    match sqlx::query_as::<_, Quote>("SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1")
-        .fetch_one(&state.pool)
-        .await
+    match sqlx::query_as::<_, Quote>(
+        "SELECT quote, speaker, source FROM quotes ORDER BY RANDOM() LIMIT 1",
+    )
+    .fetch_one(&state.pool)
+    .await
     {
         Ok(quote) => Ok((StatusCode::OK, headers, Json(quote))),
         Err(_e) => Err((StatusCode::NOT_FOUND, "Not Found")),
@@ -95,7 +97,6 @@ struct QuoteNew {
 
 #[derive(Serialize, FromRow)]
 struct Quote {
-    pub id: i32,
     pub quote: String,
     pub speaker: String,
     pub source: String,
