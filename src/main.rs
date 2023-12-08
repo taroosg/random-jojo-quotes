@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -13,22 +13,34 @@ async fn retrieve(
     Path(id): Path<i32>,
     State(state): State<MyState>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Content-Type",
+        "application/json; charset=utf-8".parse().unwrap(),
+    );
+
     match sqlx::query_as::<_, Quote>("SELECT * FROM quotes WHERE id = $1")
         .bind(id)
         .fetch_one(&state.pool)
         .await
     {
-        Ok(quote) => Ok((StatusCode::OK, Json(quote))),
+        Ok(quote) => Ok((StatusCode::OK, headers, Json(quote))),
         Err(_e) => Err((StatusCode::NOT_FOUND, "Not Found")),
     }
 }
 
 async fn random(State(state): State<MyState>) -> Result<impl IntoResponse, impl IntoResponse> {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Content-Type",
+        "application/json; charset=utf-8".parse().unwrap(),
+    );
+
     match sqlx::query_as::<_, Quote>("SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1")
         .fetch_one(&state.pool)
         .await
     {
-        Ok(quote) => Ok((StatusCode::OK, Json(quote))),
+        Ok(quote) => Ok((StatusCode::OK, headers, Json(quote))),
         Err(_e) => Err((StatusCode::NOT_FOUND, "Not Found")),
     }
 }
