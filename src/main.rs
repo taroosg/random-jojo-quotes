@@ -19,7 +19,17 @@ async fn retrieve(
         .await
     {
         Ok(quote) => Ok((StatusCode::OK, Json(quote))),
-        Err(e) => Err((StatusCode::BAD_REQUEST, e.to_string())),
+        Err(_e) => Err((StatusCode::NOT_FOUND, "Not Found")),
+    }
+}
+
+async fn random(State(state): State<MyState>) -> Result<impl IntoResponse, impl IntoResponse> {
+    match sqlx::query_as::<_, Quote>("SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1")
+        .fetch_one(&state.pool)
+        .await
+    {
+        Ok(quote) => Ok((StatusCode::OK, Json(quote))),
+        Err(_e) => Err((StatusCode::NOT_FOUND, "Not Found")),
     }
 }
 
@@ -55,8 +65,9 @@ async fn axum(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
 
     let state = MyState { pool };
     let router = Router::new()
-        .route("/", get(|| async { "Hello, World!" }))
-        .route("/quotes", post(add))
+        .route("/", get(random))
+        // .route("/hello", get(|| async { "Hello, World!" }))
+        // .route("/quotes", post(add))
         .route("/quotes/:id", get(retrieve))
         .with_state(state);
 
