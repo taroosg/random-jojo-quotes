@@ -47,6 +47,28 @@ async fn random(State(state): State<MyState>) -> Result<impl IntoResponse, impl 
     }
 }
 
+async fn retrieve_source(
+    Path(id): Path<i32>,
+    State(state): State<MyState>,
+) -> Result<impl IntoResponse, impl IntoResponse> {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Content-Type",
+        "application/json; charset=utf-8".parse().unwrap(),
+    );
+
+    let source = format!("第{}部", id);
+
+    match sqlx::query_as::<_, Quote>("SELECT quote, speaker, source FROM quotes WHERE source = $1 ORDER BY RANDOM() LIMIT 1")
+        .bind(source)
+        .fetch_one(&state.pool)
+        .await
+    {
+        Ok(quote) => Ok((StatusCode::OK, headers, Json(quote))),
+        Err(_e) => Err((StatusCode::NOT_FOUND, "Not Found")),
+    }
+}
+
 async fn add(
     State(state): State<MyState>,
     Json(data): Json<QuoteNew>,
@@ -80,6 +102,7 @@ async fn axum(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
     let state = MyState { pool };
     let router = Router::new()
         .route("/", get(random))
+        .route("/:id", get(retrieve_source))
         // .route("/hello", get(|| async { "Hello, World!" }))
         // .route("/quotes", post(add))
         .route("/quotes/:id", get(retrieve))
